@@ -327,6 +327,7 @@ dependencies = [
  "clap",
  "futures",
  "notify",
+ "percent-encoding",
  "serde",
  "tokio",
  "tokio-stream",

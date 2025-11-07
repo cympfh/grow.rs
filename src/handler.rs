@@ -59,7 +59,7 @@ pub async fn handle_path(State(state): State<AppState>, Path(path): Path<String>
     if canonical_path.is_dir() {
         handle_directory(&canonical_path, path).await
     } else {
-        handle_file(&canonical_path, &path).await
+        handle_file(&canonical_path, &path, &state.base_dir).await
     }
 }
 
@@ -214,12 +214,12 @@ a:hover .icon { transform: scale(1.2); transition: transform 0.2s; }
     Html(html).into_response()
 }
 
-async fn handle_file(file_path: &PathBuf, _relative_path: &str) -> Response {
+async fn handle_file(file_path: &PathBuf, relative_path: &str, base_dir: &PathBuf) -> Response {
     let extension = file_path.extension().and_then(|s| s.to_str());
 
     // マークダウンファイルの場合はunidocで変換
     if matches!(extension, Some("md") | Some("mkd")) {
-        match markdown::convert_to_html(file_path).await {
+        match markdown::convert_to_html(file_path, relative_path, base_dir).await {
             Ok(html) => Html(html).into_response(),
             Err(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
