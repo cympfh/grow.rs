@@ -1,7 +1,22 @@
-use axum::{routing::get, Router};
+use axum::{extract::Request, middleware::{self, Next}, response::Response, routing::get, Router};
 use std::net::SocketAddr;
 
 use crate::handler::{handle_path, handle_reload_events, handle_reload_js, handle_root, AppState};
+
+async fn logging_middleware(request: Request, next: Next) -> Response {
+    let method = request.method().clone();
+    let uri = request.uri().clone();
+    let start = std::time::Instant::now();
+
+    let response = next.run(request).await;
+
+    let duration = start.elapsed();
+    let status = response.status();
+
+    println!("{} {} {} {:?}", method, uri, status, duration);
+
+    response
+}
 
 pub async fn start(state: AppState, host: &str, port: u16) -> Result<(), std::io::Error> {
     let app = Router::new()
@@ -9,6 +24,7 @@ pub async fn start(state: AppState, host: &str, port: u16) -> Result<(), std::io
         .route("/__reload__", get(handle_reload_events))
         .route("/__reload__.js", get(handle_reload_js))
         .route("/*path", get(handle_path))
+        .layer(middleware::from_fn(logging_middleware))
         .with_state(state);
 
     // 空いているポートを探す
