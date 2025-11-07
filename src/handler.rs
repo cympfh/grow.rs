@@ -42,11 +42,11 @@ pub async fn handle_path(State(state): State<AppState>, Path(path): Path<String>
                             return (StatusCode::FORBIDDEN, "Access denied").into_response();
                         }
                         // ファイルが存在しない
-                        return (StatusCode::NOT_FOUND, "Not found").into_response();
+                        return handle_not_found(&path).await;
                     }
-                    Err(_) => return (StatusCode::NOT_FOUND, "Not found").into_response(),
+                    Err(_) => return handle_not_found(&path).await,
                 },
-                None => return (StatusCode::NOT_FOUND, "Not found").into_response(),
+                None => return handle_not_found(&path).await,
             }
         }
     };
@@ -61,6 +61,142 @@ pub async fn handle_path(State(state): State<AppState>, Path(path): Path<String>
     } else {
         handle_file(&canonical_path, &path, &state.base_dir).await
     }
+}
+
+async fn handle_not_found(path: &str) -> Response {
+    // 親ディレクトリへのパスを計算
+    let parent_path = if path.contains('/') {
+        path.rsplitn(2, '/').nth(1).unwrap_or("")
+    } else {
+        ""
+    };
+
+    let html = format!(r#"<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 Not Found</title>
+<script src="/__reload__.js"></script>
+<style>
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+body {{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #333;
+}}
+.container {{
+    max-width: 600px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    padding: 3rem 2.5rem;
+    text-align: center;
+    animation: fadeIn 0.5s ease;
+}}
+@keyframes fadeIn {{
+    from {{ opacity: 0; transform: translateY(20px); }}
+    to {{ opacity: 1; transform: translateY(0); }}
+}}
+.error-code {{
+    font-size: 8rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+    margin-bottom: 1rem;
+    animation: pulse 2s ease-in-out infinite;
+}}
+@keyframes pulse {{
+    0%, 100% {{ transform: scale(1); }}
+    50% {{ transform: scale(1.05); }}
+}}
+h1 {{
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: #374151;
+}}
+.path {{
+    font-size: 1rem;
+    color: #6b7280;
+    margin-bottom: 2rem;
+    word-break: break-all;
+    padding: 1rem;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-family: 'Monaco', 'Courier New', monospace;
+}}
+.actions {{
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}}
+a {{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 2rem;
+    text-decoration: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}}
+.primary {{
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}}
+.primary:hover {{
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}}
+.secondary {{
+    background: #f3f4f6;
+    color: #374151;
+}}
+.secondary:hover {{
+    background: #e5e7eb;
+    transform: translateY(-2px);
+}}
+.icon {{
+    margin-right: 0.5rem;
+    font-size: 1.25rem;
+}}
+@media (max-width: 640px) {{
+    .container {{ padding: 2rem 1.5rem; }}
+    .error-code {{ font-size: 6rem; }}
+    h1 {{ font-size: 1.5rem; }}
+}}
+</style>
+</head><body>
+<div class="container">
+    <div class="error-code">404</div>
+    <h1>Page Not Found</h1>
+    <div class="path">/{}</div>
+    <div class="actions">
+        <a href="/{}" class="primary">
+            <span class="icon">⬆️</span>
+            Go to Parent Directory
+        </a>
+        <a href="/" class="secondary">
+            <span class="icon">🏠</span>
+            Go to Home
+        </a>
+    </div>
+</div>
+</body></html>"#, path, parent_path);
+
+    (StatusCode::NOT_FOUND, Html(html)).into_response()
 }
 
 async fn handle_directory(dir_path: &PathBuf, relative_path: String) -> Response {
