@@ -279,13 +279,13 @@ hr {
 
 pub async fn convert_to_html(file_path: &PathBuf, relative_path: &str, base_dir: &PathBuf) -> Result<String, String> {
     // ヘッダー用の一時ファイル
-    let temp_header = std::env::temp_dir().join("grow_reload_header.html");
+    let temp_header = std::env::temp_dir().join("mvu_reload_header.html");
     std::fs::write(&temp_header, RELOAD_HTML)
         .map_err(|e| format!("Failed to write header.html: {}", e))?;
 
     // サイドメニュー用の一時ファイル
     let side_menu_html = generate_side_menu(file_path, relative_path, base_dir)?;
-    let temp_body = std::env::temp_dir().join("grow_side_menu.html");
+    let temp_body = std::env::temp_dir().join("mvu_side_menu.html");
     std::fs::write(&temp_body, side_menu_html)
         .map_err(|e| format!("Failed to write side_menu.html: {}", e))?;
 
