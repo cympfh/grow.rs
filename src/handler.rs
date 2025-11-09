@@ -406,7 +406,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_path_traversal_protection() {
-        let temp_dir = std::env::temp_dir().join("grow_test_traversal");
+        let temp_dir = std::env::temp_dir().join("mvu_test_traversal");
         fs::create_dir_all(&temp_dir).unwrap();
 
         // temp_dirの親ディレクトリに実際にファイルを作成
@@ -430,7 +430,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_nonexistent_path() {
-        let temp_dir = std::env::temp_dir().join("grow_test_nonexist");
+        let temp_dir = std::env::temp_dir().join("mvu_test_nonexist");
         fs::create_dir_all(&temp_dir).unwrap();
 
         let state = create_test_state(temp_dir.clone());
@@ -445,7 +445,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_directory_listing() {
-        let temp_dir = std::env::temp_dir().join("grow_test_dir");
+        let temp_dir = std::env::temp_dir().join("mvu_test_dir");
         fs::create_dir_all(&temp_dir).unwrap();
 
         // テスト用のファイルを作成
@@ -462,7 +462,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_markdown_file_detection() {
-        let temp_dir = std::env::temp_dir().join("grow_test_md");
+        let temp_dir = std::env::temp_dir().join("mvu_test_md");
         fs::create_dir_all(&temp_dir).unwrap();
 
         // Markdownファイルを作成

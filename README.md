@@ -1,6 +1,8 @@
-# 🚀 grow.rs
+# 🚀 marvu (mvu)
 
-A modern, fast markdown viewer server built with Rust and Axum. Transform your directory into a beautiful web-based documentation browser with live-reload capabilities.
+**marvu** = **mar**kdown **v**iew**u** — A modern, fast markdown viewer server built with Rust and Axum.
+
+Transform your directory into a beautiful web-based documentation browser with live-reload capabilities. Simply run `mvu` in any directory containing Markdown files, and instantly view them in your browser with a sleek, modern interface.
 
 ## ✨ Features
 
@@ -24,12 +26,12 @@ You need to install [unidoc](https://github.com/cympfh/unidoc) for markdown proc
 cargo install unidoc
 ```
 
-### Install grow.rs
+### Install marvu
 
 ```bash
 # Clone and build
-git clone https://github.com/cympfh/grow.rs
-cd grow.rs
+git clone https://github.com/cympfh/marvu
+cd marvu
 cargo build --release
 
 # Or install directly from source
@@ -42,13 +44,13 @@ cargo install --path .
 
 ```bash
 # Serve current directory on default port (8080)
-grow .
+mvu .
 
 # Serve specific directory
-grow /path/to/your/docs
+mvu /path/to/your/docs
 
 # Specify port and host
-grow --port 3000 --host 127.0.0.1 ./my-docs
+mvu --port 3000 --host 127.0.0.1 ./my-docs
 ```
 
 ### Command Line Options
@@ -60,7 +62,7 @@ grow --port 3000 --host 127.0.0.1 ./my-docs
 ### Example
 
 ```bash
-$ grow --port 8080 ./documentation
+$ mvu --port 8080 ./documentation
 Starting server on http://0.0.0.0:8080
 ```
 
@@ -68,7 +70,7 @@ Then open your browser and navigate to `http://localhost:8080`
 
 ## 🏗️ Architecture
 
-grow.rs is built with a clean, modular architecture:
+marvu is built with a clean, modular architecture:
 
 - **Axum Web Framework**: High-performance async web server
 - **File Watching**: Real-time monitoring using the `notify` crate
