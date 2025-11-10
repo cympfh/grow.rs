@@ -376,6 +376,18 @@ fn generate_side_menu(file_path: &PathBuf, relative_path: &str, base_dir: &PathB
             }}
         }});
     }});
+
+    // Close menu when clicking outside
+    document.addEventListener('click', function(e) {{
+        const isMenuOpen = sideMenu.classList.contains('open');
+        const clickedInsideMenu = sideMenu.contains(e.target);
+        const clickedMenuToggle = menuToggle.contains(e.target);
+
+        if (isMenuOpen && !clickedInsideMenu && !clickedMenuToggle) {{
+            sideMenu.classList.remove('open');
+            document.body.classList.remove('menu-open');
+        }}
+    }});
 }})();
 </script>
 "#, toc, file_tree);
