@@ -288,10 +288,113 @@ a:hover .icon { transform: scale(1.2); transition: transform 0.2s; }
     font-weight: 600;
     color: #667eea;
 }
+.image-item {
+    position: relative;
+}
+.image-item a {
+    cursor: pointer;
+}
+.thumbnail {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-right: 1rem;
+}
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+}
+.modal.active {
+    display: flex;
+}
+.modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.modal-image {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    border-radius: 8px;
+}
+.modal-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.5);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: rotate(90deg);
+}
+.modal-link {
+    position: absolute;
+    top: 20px;
+    right: 80px;
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s;
+}
+.modal-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+.modal-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+}
+.modal-nav:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+.modal-nav.prev {
+    left: 20px;
+}
+.modal-nav.next {
+    right: 20px;
+}
 @media (max-width: 640px) {
     body { padding: 1rem; }
     .container { padding: 1.5rem; }
     h1 { font-size: 1.5rem; }
+    .thumbnail { width: 60px; height: 60px; }
 }
 </style>
 </head><body><div class="container">"#);
@@ -324,6 +427,7 @@ a:hover .icon { transform: scale(1.2); transition: transform 0.2s; }
     }
     items.sort();
 
+    let mut image_paths = Vec::new();
     for (name, is_dir) in items {
         let link_path = if relative_path.is_empty() {
             name.clone()
@@ -331,22 +435,108 @@ a:hover .icon { transform: scale(1.2); transition: transform 0.2s; }
             format!("{}/{}", relative_path, name)
         };
 
+        // 画像ファイルの判定
+        let is_image = !is_dir && (
+            name.ends_with(".jpg") || name.ends_with(".jpeg") ||
+            name.ends_with(".png") || name.ends_with(".gif") ||
+            name.ends_with(".webp") || name.ends_with(".svg") ||
+            name.ends_with(".JPG") || name.ends_with(".JPEG") ||
+            name.ends_with(".PNG") || name.ends_with(".GIF") ||
+            name.ends_with(".WEBP") || name.ends_with(".SVG")
+        );
+
+        if is_image {
+            image_paths.push(link_path.clone());
+        }
+
         // Markdownファイルには特別なアイコンを使用
         let (icon, icon_class, link_class) = if is_dir {
             ("📁", "dir", "")
         } else if name.ends_with(".md") || name.ends_with(".mkd") {
             ("📝", "file", " markdown")
+        } else if is_image {
+            ("🖼️", "file", "")
         } else {
             ("📄", "file", "")
         };
 
-        html.push_str(&format!(
-            "<li><a href=\"/{}\" class=\"{}\"><span class=\"icon {}\">{}</span>{}</a></li>",
-            link_path, link_class.trim(), icon_class, icon, name
-        ));
+        if is_image {
+            html.push_str(&format!(
+                "<li class=\"image-item\"><a href=\"javascript:void(0)\" onclick=\"openModal('{}', {})\" class=\"{}\"><img src=\"/{}\" class=\"thumbnail\" alt=\"{}\" loading=\"lazy\"><span>{}</span></a></li>",
+                link_path, image_paths.len() - 1, link_class.trim(), link_path, name, name
+            ));
+        } else {
+            html.push_str(&format!(
+                "<li><a href=\"/{}\" class=\"{}\"><span class=\"icon {}\">{}</span>{}</a></li>",
+                link_path, link_class.trim(), icon_class, icon, name
+            ));
+        }
     }
 
-    html.push_str("</ul></div></body></html>");
+    html.push_str("</ul></div>");
+
+    // モーダルの追加
+    html.push_str(r#"<div id="imageModal" class="modal">
+    <div class="modal-content">
+        <a id="modalLink" class="modal-link" href="" target="_blank">元ファイル</a>
+        <div class="modal-close" onclick="closeModal()">×</div>
+        <div class="modal-nav prev" onclick="prevImage()">‹</div>
+        <div class="modal-nav next" onclick="nextImage()">›</div>
+        <img id="modalImage" class="modal-image" src="" alt="">
+    </div>
+</div>
+<script>
+const imagePaths = "#);
+    html.push_str(&serde_json::to_string(&image_paths).unwrap_or_else(|_| "[]".to_string()));
+    html.push_str(r#";
+let currentImageIndex = 0;
+
+function openModal(imagePath, index) {
+    currentImageIndex = index;
+    updateModalImage();
+    document.getElementById('imageModal').classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('imageModal').classList.remove('active');
+}
+
+function updateModalImage() {
+    const imagePath = imagePaths[currentImageIndex];
+    document.getElementById('modalImage').src = '/' + imagePath;
+    document.getElementById('modalLink').href = '/' + imagePath;
+}
+
+function nextImage() {
+    currentImageIndex = (currentImageIndex + 1) % imagePaths.length;
+    updateModalImage();
+}
+
+function prevImage() {
+    currentImageIndex = (currentImageIndex - 1 + imagePaths.length) % imagePaths.length;
+    updateModalImage();
+}
+
+document.getElementById('imageModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeModal();
+    }
+});
+
+document.addEventListener('keydown', function(e) {
+    const modal = document.getElementById('imageModal');
+    if (modal.classList.contains('active')) {
+        if (e.key === 'ArrowLeft') {
+            prevImage();
+        } else if (e.key === 'ArrowRight') {
+            nextImage();
+        } else if (e.key === 'Escape') {
+            closeModal();
+        }
+    }
+});
+</script>
+</body></html>"#);
     Html(html).into_response()
 }
 
@@ -489,5 +679,36 @@ mod tests {
             let response = handle_reload_js().await;
             assert_eq!(response.status(), StatusCode::OK);
         });
+    }
+
+    #[tokio::test]
+    async fn test_image_file_detection() {
+        let temp_dir = std::env::temp_dir().join("mvu_test_images");
+        fs::create_dir_all(&temp_dir).unwrap();
+
+        // 画像ファイルを作成
+        fs::write(temp_dir.join("test.jpg"), "fake image").unwrap();
+        fs::write(temp_dir.join("test.png"), "fake image").unwrap();
+        fs::write(temp_dir.join("test.gif"), "fake image").unwrap();
+        fs::write(temp_dir.join("test.webp"), "fake image").unwrap();
+        fs::write(temp_dir.join("test.svg"), "fake image").unwrap();
+        fs::write(temp_dir.join("document.txt"), "text file").unwrap();
+
+        let response = handle_directory(&temp_dir, "".to_string()).await;
+        let status = response.status();
+        assert_eq!(status, StatusCode::OK);
+
+        // レスポンスボディを取得
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let body_str = String::from_utf8(body.to_vec()).unwrap();
+
+        // 画像ファイルがサムネイル表示されているか確認
+        assert!(body_str.contains("test.jpg"));
+        assert!(body_str.contains("test.png"));
+        assert!(body_str.contains("class=\"thumbnail\""));
+        assert!(body_str.contains("openModal"));
+        assert!(body_str.contains("imageModal"));
+
+        fs::remove_dir_all(&temp_dir).ok();
     }
 }
